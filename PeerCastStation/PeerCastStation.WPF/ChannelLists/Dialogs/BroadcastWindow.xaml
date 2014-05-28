@@ -16,7 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
 <Window x:Class="PeerCastStation.WPF.ChannelLists.Dialogs.BroadcastWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:extToolkit="http://schemas.xceed.com/wpf/xaml/toolkit"
         Title="配信設定" Width="480" Height="Auto"
         WindowStartupLocation="CenterOwner"
         ResizeMode="NoResize"
@@ -47,7 +46,47 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
         <ColumnDefinition Width="*"/>
       </Grid.ColumnDefinitions>
       <Label Grid.Column="0" Content="履歴:"/>
-      <ComboBox Grid.Column="1" ItemsSource="{Binding BroadcastHistory}" SelectedItem="{Binding SelectedBroadcastHistory}" DisplayMemberPath="Name"/>
+      <ComboBox Grid.Column="1" ItemsSource="{Binding BroadcastHistory}" SelectedItem="{Binding SelectedBroadcastHistory}" HorizontalContentAlignment="Stretch">
+        <ComboBox.ItemTemplate>
+          <DataTemplate>
+            <Grid>
+              <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+              </Grid.ColumnDefinitions>
+              <TextBlock Grid.Column="0" Text="{Binding Name}"/>
+              <CheckBox Grid.Column="1" IsChecked="{Binding Favorite}">
+                <CheckBox.Template>
+                  <ControlTemplate TargetType="CheckBox">
+                    <BulletDecorator>
+                      <BulletDecorator.Bullet>
+                        <Grid Width="13" Height="13">
+                          <Path Data="M5.262,2.018C5.889,0.839 6.515,0.25 7.768,0.25 9.152,0.25 10.274,1.306 10.274,2.607 10.274,4.963 7.768,7.32 5.262,9.676 2.756,7.32 0.25,4.963 0.25,2.607 0.25,1.306 1.373,0.25 2.756,0.25 4.009,0.25 4.636,0.839 5.262,2.018z" Height="10.02" Stroke="#FFF20024" StrokeThickness="0.5" StrokeMiterLimit="22.926" Width="10.525" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                          <Path x:Name="OverMark"    Visibility="Collapsed" Data="F1M5.262,2.017C5.888,0.839 6.515,0.25 7.768,0.25 9.151,0.25 10.274,1.305 10.274,2.606 10.274,4.963 7.768,7.32 5.262,9.676 2.756,7.32 0.25,4.963 0.25,2.606 0.25,1.305 1.372,0.25 2.756,0.25 4.009,0.25 4.635,0.839 5.262,2.017" Fill="#4CF20024" Height="10.02" Stroke="#FFF20024" StrokeThickness="0.5" StrokeMiterLimit="22.926" Width="10.524"/>
+                          <Path x:Name="CheckedMark" Visibility="Collapsed" Data="F1M5.262,2.017C5.889,0.839 6.515,0.25 7.769,0.25 9.152,0.25 10.275,1.305 10.275,2.606 10.275,4.963 7.769,7.32 5.262,9.676 2.756,7.32 0.25,4.963 0.25,2.606 0.25,1.305 1.373,0.25 2.756,0.25 4.01,0.25 4.636,0.839 5.262,2.017" Fill="#FFF20024" Height="10.02" Canvas.Left="36.904" Stroke="#FFF20024" StrokeThickness="0.5" StrokeMiterLimit="22.926" Width="10.524"/>
+                          <Path x:Name="PressedMark" Visibility="Collapsed" Data="F1M5.262,2.017C5.889,0.839 6.515,0.25 7.768,0.25 9.152,0.25 10.274,1.305 10.274,2.606 10.274,4.963 7.768,7.32 5.262,9.676 2.756,7.32 0.25,4.963 0.25,2.606 0.25,1.305 1.373,0.25 2.756,0.25 4.009,0.25 4.636,0.839 5.262,2.017" Fill="#82F20024" Height="10.02" Stroke="#FFF20024" StrokeThickness="0.5" StrokeMiterLimit="22.926" Width="10.525"/>
+                        </Grid>
+                      </BulletDecorator.Bullet>
+                      <ContentPresenter Margin="4,0,0,0" VerticalAlignment="Center" HorizontalAlignment="Left" RecognizesAccessKey="True" />
+                    </BulletDecorator>
+                    <ControlTemplate.Triggers>
+                      <Trigger Property="IsMouseOver" Value="true">
+                        <Setter TargetName="OverMark" Property="Visibility" Value="{x:Static Visibility.Visible}" />
+                      </Trigger>
+                      <Trigger Property="IsPressed" Value="true">
+                        <Setter TargetName="PressedMark" Property="Visibility" Value="{x:Static Visibility.Visible}" />
+                      </Trigger>
+                      <Trigger Property="IsChecked" Value="true">
+                        <Setter TargetName="CheckedMark" Property="Visibility" Value="{x:Static Visibility.Visible}" />
+                      </Trigger>
+                    </ControlTemplate.Triggers>
+                  </ControlTemplate>
+                </CheckBox.Template>
+              </CheckBox>
+            </Grid>
+          </DataTemplate>
+        </ComboBox.ItemTemplate>
+      </ComboBox>
     </Grid>
     <GroupBox Header="ストリーム情報">
       <Grid>
@@ -68,7 +107,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
                   SelectedItem="{Binding SelectedSourceStream}"
                   DisplayMemberPath="Name"/>
         <Label    Grid.Column="0" Grid.Row="1" Content="ストリームURL:"/>
-        <TextBox  Grid.Column="1" Grid.Row="1" Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}"/>
+        <TextBox  Grid.Column="1" Grid.Row="1" Text="{Binding StreamUrl, UpdateSourceTrigger=PropertyChanged}" InputScope="Url"/>
         <Label    Grid.Column="0" Grid.Row="2" Content="ビットレート:"/>
         <Grid Grid.Column="1" Grid.Row="2">
           <Grid.ColumnDefinitions>
@@ -89,8 +128,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
         <ComboBox Grid.Column="1" Grid.Row="4"
                   ItemsSource="{Binding YellowPages}"
                   SelectedValue="{Binding YellowPage}"
-                  SelectedValuePath="YellowPageClient"
-                  DisplayMemberPath="Name"/>
+                  SelectedValuePath="Value"
+                  DisplayMemberPath="Key"/>
       </Grid>
     </GroupBox>
     <GroupBox Header="チャンネル情報">
@@ -115,7 +154,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
         <Label   Grid.Row="3" Grid.Column="0" Content="配信者コメント:"/>
         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding Comment}"/>
         <Label   Grid.Row="4" Grid.Column="0" Content="コンタクトURL:"/>
-        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ContactUrl}"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding ContactUrl}" InputScope="Url"/>
       </Grid>
     </GroupBox>
     <GroupBox Header="トラック情報">
@@ -140,7 +179,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>. -->
         <Label   Grid.Row="3" Grid.Column="0" Content="ジャンル:"/>
         <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding TrackGenre}"/>
         <Label   Grid.Row="4" Grid.Column="0" Content="URL:"/>
-        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TrackUrl}"/>
+        <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding TrackUrl}" InputScope="Url"/>
       </Grid>
     </GroupBox>
     <Grid>

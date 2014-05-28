@@ -17,19 +17,16 @@
         $('#channels').tooltip({selector: "a[rel=tooltip]"});
         $('.alert').alert();
         channelsViewModel.bind($('#channels').get(0));
-        UIViewModel.bind($('.alerts').get(0));
+        UIViewModel.bind($('#header').get(0));
       });
     </script>
     <script type="text/html" id='alert'>
-      <div class="alert alert-block fade in" data-bind="css: 'alert-'+type">
-        <a class="close" data-dismiss="alert" href="#">&times;</a>
-        <h4 data-bind="text: title"></h4>
-        <p data-bind="text: message"></p>
+      <div class="alert alert-block fade in" data-bind="css:'alert-'+type, click:clicked">
+        <a class="close" data-dismiss="alert" data-bind="css:'alert-'+type, click:close" href="#">&times;</a>
+        <h4 data-bind="text:title"></h4>
+        <p data-bind="text:message"></p>
       </div>
     </script>
-  </head>
-  <body>
-    <div class="alerts" data-bind="template: { name: 'alert', foreach: alerts }"></div>
     <script type="text/html" id="relayTreeTemplate">
       <li>
         <i data-bind="attr:{ class: connectionStatus }"></i>
@@ -39,19 +36,50 @@
         <ul class="relayTree" data-bind="template: { name:'relayTreeTemplate', foreach:children }"></ul>
       </li>
     </script>
-
-    <div class="navbar">
-      <div class="navbar-inner">
-        <div class="container-fluid">
-          <a class="brand" href="#">PeerCastStation</a>
-          <ul class="nav">
-            <li><a href="index.html">情報</a></li>
-            <li class="active"><a href="relays.html">リレー</a></li>
-            <li><a href="settings.html">設定</a></li>
-            <li><a href="logs.html">ログ</a></li>
-            <li><a href="/help/index.html">ヘルプ</a></li>
-          </ul>
-          <a class="btn btn-primary pull-right" href="#" onclick="BroadcastDialog.show()">配信</a>
+    <style>
+      .favorite {
+        position:absolute;
+        left:auto;
+        right:0;
+        margin:0 4px;
+      }
+      .fav {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-top: 0px;
+        line-height: 16px;
+        background-image: url('images/heart.png');
+        background-position: -48px 0px;
+        background-repeat: no-repeat;
+      }
+      .fav-off {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        line-height: 16px;
+        background-image: url('images/heart.png');
+        background-repeat: no-repeat;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="header">
+      <div class="alerts" data-bind="template: { name: 'alert', foreach: alerts }"></div>
+      <div class="navbar">
+        <div class="navbar-inner">
+          <div class="container-fluid">
+            <a class="brand" href="#">PeerCastStation</a>
+            <ul class="nav">
+              <li><a href="index.html">情報</a></li>
+              <li class="active"><a href="relays.html">リレー</a></li>
+              <li><a href="settings.html">設定</a></li>
+              <li><a href="logs.html">ログ</a></li>
+              <li><a href="/help/index.html">ヘルプ</a></li>
+            </ul>
+            <a class="btn btn-primary pull-right" style="margin-left:4px" href="#" onclick="BroadcastDialog.show()">配信</a>
+            <a class="btn btn-warning pull-right" data-bind="css:{hidden:!newVersionAvailable()}" href="update.html" target="_blank">バージョンアップ</a>
+          </div>
         </div>
       </div>
     </div>
@@ -225,6 +253,15 @@
       </div>
       <div class="modal-body">
         <table>
+          <tr><th>履歴</th>              <td>
+            <div class="btn-group">
+              <button class="btn" data-toggle="dropdown" data-bind="text:selectedHistory().name"></button>
+              <button class="btn dropdown-toggle" data-toggle="dropdown"><span class="caret"></span></button>
+              <ul class="dropdown-menu" data-bind="foreach:broadcastHistory">
+                <li><a href="#" data-bind="click:select"><span data-bind="text:name"></span><button class="favorite btn btn-mini btn-link" href="#" data-bind="click:toggleFavorite"><i class="fav-off" data-bind="css:{fav:favorite}"></i></button></a></li>
+              </ul>
+            </div>
+          </td></tr>
           <tr><th>ソース</th>            <td><select data-bind="options:sourceStreams, optionsText: 'desc', value:sourceStream"></select></td></tr>
           <tr><th>ストリームURL</th>      <td><input type="text" name="sourceUrl"       data-bind="value:source          "></td></tr>
           <tr><th>ビットレート</th>       <td><input type="text" name="infoBitrate"     data-bind="value:infoBitrate     "></td></tr>

@@ -139,6 +139,12 @@ PeerCast = {
       track: track
     }, completed);
   },
+  getBroadcastHistory: function(completed) {
+    this.postRequest('getBroadcastHistory', null, completed);
+  },
+  addBroadcastHistory: function(info, completed) {
+    this.postRequest('addBroadcastHistory', { info: info }, completed);
+  },
 
   getLogSettings: function(completed) {
     this.postRequest('getLogSettings', null, completed);
@@ -158,6 +164,13 @@ PeerCast = {
   },
   checkBandwidth: function(completed) {
     this.postRequest('checkBandwidth', null, completed);
-  }
+  },
+
+  checkUpdate: function(completed) {
+    this.postRequest('checkUpdate', null, completed);
+  },
+  getNewVersions: function(completed) {
+    this.postRequest('getNewVersions', null, completed);
+  },
 };
 

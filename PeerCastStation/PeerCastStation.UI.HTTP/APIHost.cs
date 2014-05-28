@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using PeerCastStation.Core;
 using PeerCastStation.HTTP;
 using PeerCastStation.UI.HTTP.JSONRPC;
+using PeerCastStation.UI;
 using Newtonsoft.Json.Linq;
 
 namespace PeerCastStation.UI.HTTP
@@ -18,6 +19,8 @@ namespace PeerCastStation.UI.HTTP
     override public string Name { get { return "HTTP API Host UI"; } }
     public LogWriter LogWriter { get { return logWriter; } }
     private LogWriter logWriter = new LogWriter(1000);
+    private Updater updater = new Updater();
+    private IEnumerable<VersionDescription> newVersions = Enumerable.Empty<VersionDescription>();
 
     private ObjectIdRegistry idRegistry = new ObjectIdRegistry();
     private APIHostOutputStreamFactory factory;
@@ -30,6 +33,8 @@ namespace PeerCastStation.UI.HTTP
     protected override void OnStart()
     {
       Logger.AddWriter(logWriter);
+      updater.NewVersionFound += OnNewVersionFound;
+      updater.CheckVersion();
     }
 
     protected override void OnStop()
@@ -42,11 +47,34 @@ namespace PeerCastStation.UI.HTTP
       Application.PeerCast.OutputStreamFactories.Remove(factory);
     }
 
+    void OnNewVersionFound(object sender, NewVersionFoundEventArgs args)
+    {
+      foreach (var plugin in Application.Plugins
+          .Select(p => p as IUserInterfacePlugin)
+          .Where(p => p!=null)) {
+        plugin.ShowNotificationMessage(
+          new NewVersionNotificationMessage(args.VersionDescriptions));
+      }
+    }
+
+    public void CheckVersion()
+    {
+      updater.CheckVersion();
+    }
+
+    public IEnumerable<VersionDescription> GetNewVersions()
+    {
+      return newVersions;
+    }
+
     private List<NotificationMessage> notificationMessages = new List<NotificationMessage>();
     public void ShowNotificationMessage(NotificationMessage msg)
     {
       lock (notificationMessages) {
         notificationMessages.Add(msg);
+        if (msg is NewVersionNotificationMessage) {
+          newVersions = ((NewVersionNotificationMessage)msg).VersionDescriptions;
+        }
       }
     }
 
@@ -844,12 +872,77 @@ namespace PeerCastStation.UI.HTTP
         return channel.ChannelID.ToString("N").ToUpper();
       }
 
+      [RPCMethod("getBroadcastHistory")]
+      public JArray GetBroadcastHistory()
+      {
+        var settings = PeerCastApplication.Current.Settings.Get<UISettings>();
+        return new JArray(settings.BroadcastHistory
+          .OrderBy(info => info.Favorite ? 0 : 1)
+          .Select(info => {
+            var obj = new JObject();
+            obj["streamType"]  = info.StreamType;
+            obj["streamUrl"]   = info.StreamUrl;
+            obj["bitrate"]     = info.Bitrate;
+            obj["contentType"] = info.ContentType;
+            obj["yellowPage"]  = info.YellowPage;
+            obj["channelName"] = info.ChannelName;
+            obj["genre"]       = info.Genre;
+            obj["description"] = info.Description;
+            obj["comment"]     = info.Comment;
+            obj["contactUrl"]  = info.ContactUrl;
+            obj["trackTitle"]  = info.TrackTitle;
+            obj["trackAlbum"]  = info.TrackAlbum;
+            obj["trackArtist"] = info.TrackArtist;
+            obj["trackGenre"]  = info.TrackGenre;
+            obj["trackUrl"]    = info.TrackUrl;
+            obj["favorite"]    = info.Favorite;
+            return obj;
+          })
+        );
+      }
+
+      [RPCMethod("addBroadcastHistory")]
+      public void AddBroadcastHistory(JObject info)
+      {
+        var obj = new PeerCastStation.UI.BroadcastInfo();
+        if (info["streamType"]!=null)  obj.StreamType  = (string)info["streamType"];
+        if (info["streamUrl"]!=null)   obj.StreamUrl   = (string)info["streamUrl"];
+        if (info["bitrate"]!=null)     obj.Bitrate     = (int)info["bitrate"];
+        if (info["contentType"]!=null) obj.ContentType = (string)info["contentType"];
+        if (info["yellowPage"]!=null)  obj.YellowPage  = (string)info["yellowPage"];
+        if (info["channelName"]!=null) obj.ChannelName = (string)info["channelName"];
+        if (info["genre"]!=null)       obj.Genre       = (string)info["genre"];
+        if (info["description"]!=null) obj.Description = (string)info["description"];
+        if (info["comment"]!=null)     obj.Comment     = (string)info["comment"];
+        if (info["contactUrl"]!=null)  obj.ContactUrl  = (string)info["contactUrl"];
+        if (info["trackTitle"]!=null)  obj.TrackTitle  = (string)info["trackTitle"];
+        if (info["trackAlbum"]!=null)  obj.TrackAlbum  = (string)info["trackAlbum"];
+        if (info["trackArtist"]!=null) obj.TrackArtist = (string)info["trackArtist"];
+        if (info["trackGenre"]!=null)  obj.TrackGenre  = (string)info["trackGenre"];
+        if (info["trackUrl"]!=null)    obj.TrackUrl    = (string)info["trackUrl"];
+        if (info["favorite"]!=null)    obj.Favorite    = (bool)info["favorite"];
+        var settings = PeerCastApplication.Current.Settings.Get<UISettings>();
+        var item = settings.FindBroadcastHistroryItem(obj);
+        if (item!=null) {
+          if (info["favorite"]!=null) item.Favorite = (bool)info["favorite"];
+        }
+        else {
+          settings.AddBroadcastHistory(obj);
+        }
+      }
+
       [RPCMethod("getNotificationMessages")]
       public JArray GetNotificationMessages()
       {
         return new JArray(
           owner.GetNotificationMessages().Select(msg => {
             var obj = new JObject();
+            if (msg is NewVersionNotificationMessage) {
+              obj["class"] = "newversion";
+            }
+            else {
+              obj["class"] = msg.GetType().Name.ToLowerInvariant();
+            }
             obj["type"]    = msg.Type.ToString().ToLowerInvariant();
             obj["title"]   = msg.Title;
             obj["message"] = msg.Message;
@@ -873,6 +966,25 @@ namespace PeerCastStation.UI.HTTP
           checker.Run();
         }
         return result;
+      }
+
+      [RPCMethod("checkUpdate")]
+      public void CheckUpdate()
+      {
+        owner.CheckVersion();
+      }
+
+      [RPCMethod("getNewVersions")]
+      public JArray GetNewVersions()
+      {
+        return new JArray(owner.GetNewVersions().Select(v => {
+          var obj = new JObject();
+          obj["title"]       = v.Title;
+          obj["publishDate"] = v.PublishDate;
+          obj["link"]        = v.Link;
+          obj["description"] = v.Description;
+          return obj;
+        }));
       }
 
       public static readonly int RequestLimit = 64*1024;

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using PeerCastStation.Core;
 
-namespace PeerCastStation.Utils
+namespace PeerCastStation.UI
 {
   public class VersionDescription
   {
@@ -27,7 +27,7 @@ namespace PeerCastStation.Utils
   {
     private Uri url;
     private DateTime currentVersion;
-    private PeerCastStation.Utils.AppCastReader appcastReader = new AppCastReader();
+    private AppCastReader appcastReader = new AppCastReader();
     public Updater()
     {
       this.url            = AppSettingsReader.GetUri("UpdateUrl", new Uri("http://www.pecastation.org/files/appcast.xml"));
@@ -38,7 +38,7 @@ namespace PeerCastStation.Utils
     {
       return appcastReader.DownloadVersionInfoAsync(url, desc => {
         var new_versions = desc
-          .Where(v => v.PublishDate>currentVersion)
+          .Where(v => v.PublishDate.Date>currentVersion)
           .OrderByDescending(v => v.PublishDate);
         if (new_versions.Count()>0 && NewVersionFound!=null) {
           NewVersionFound(this, new NewVersionFoundEventArgs(new_versions));
@@ -48,4 +48,27 @@ namespace PeerCastStation.Utils
 
     public event NewVersionFoundEventHandler NewVersionFound;
   }
+
+  public class NewVersionNotificationMessage
+    : NotificationMessage
+  {
+    public NewVersionNotificationMessage(
+        string title,
+        string message,
+        NotificationMessageType type,
+        IEnumerable<VersionDescription> new_versions)
+      : base(title, message, type)
+    {
+      this.VersionDescriptions = new_versions;
+    }
+
+    public NewVersionNotificationMessage(IEnumerable<VersionDescription> new_versions)
+      : this("新しいバージョンがあります", new_versions.First().Title, NotificationMessageType.Info, new_versions)
+    {
+    }
+
+    public IEnumerable<VersionDescription> VersionDescriptions { get; private set; }
+  }
+
+
 }

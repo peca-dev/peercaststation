@@ -29,18 +29,16 @@ namespace PeerCastStation.WPF.ChannelLists.Dialogs
     private readonly IContentReaderFactory[] contentTypes;
     public IContentReaderFactory[] ContentTypes { get { return contentTypes; } }
 
-    private readonly YellowPageItem[] yellowPages;
-    public YellowPageItem[] YellowPages { get { return yellowPages; } }
+    private readonly IEnumerable<KeyValuePair<string,IYellowPageClient>> yellowPages;
+    public IEnumerable<KeyValuePair<string,IYellowPageClient>> YellowPages { get { return yellowPages; } }
 
-    public BroadcastInfo[] BroadcastHistory {
-      get {
-        var settings = PeerCastApplication.Current.Settings.Get<WPFSettings>();
-        return settings.BroadcastHistory;
-      }
+    private UISettingsViewModel uiSettings;
+    public IEnumerable<BroadcastInfoViewModel> BroadcastHistory {
+      get { return uiSettings.BroadcastHistory.OrderBy(i => i.Favorite ? 0 : 1); }
     }
 
-    private BroadcastInfo selectedBroadcastHistory;
-    public BroadcastInfo SelectedBroadcastHistory {
+    private BroadcastInfoViewModel selectedBroadcastHistory;
+    public BroadcastInfoViewModel SelectedBroadcastHistory {
       get { return selectedBroadcastHistory; }
       set {
         if (value!=null) {
@@ -52,8 +50,7 @@ namespace PeerCastStation.WPF.ChannelLists.Dialogs
           Bitrate     = value.Bitrate==0 ? null : value.Bitrate.ToString();
           ContentType = contentTypes.FirstOrDefault(t => t.Name==value.ContentType);
           if (value.YellowPage!=null) {
-            var yp = yellowPages.Where(y => y.YellowPageClient!=null).FirstOrDefault(y => y.YellowPageClient.Name==value.YellowPage);
-            YellowPage  = yp!=null ? yp.YellowPageClient : null;
+            YellowPage = yellowPages.Where(y => y.Value!=null).FirstOrDefault(y => y.Value.Name==value.YellowPage).Value;
           }
           else {
             YellowPage = null;
@@ -226,11 +223,12 @@ namespace PeerCastStation.WPF.ChannelLists.Dialogs
     public BroadcastViewModel(PeerCast peerCast)
     {
       this.peerCast = peerCast;
+      this.uiSettings = new UISettingsViewModel(PeerCastApplication.Current.Settings);
       start = new Command(OnBroadcast, () => CanBroadcast(StreamSource, ContentType, channelName));
       contentTypes = peerCast.ContentReaderFactories.ToArray();
 
-      yellowPages = new YellowPageItem[] { new YellowPageItem("掲載なし", null) }
-        .Concat(peerCast.YellowPages.Select(yp => new YellowPageItem(yp))).ToArray();
+      yellowPages = Enumerable.Repeat(new KeyValuePair<string,IYellowPageClient>("掲載なし", null),1)
+        .Concat(peerCast.YellowPages.Select(yp => new KeyValuePair<string,IYellowPageClient>(yp.Name, yp)));
       if (contentTypes.Length > 0) contentType = contentTypes[0];
 
       this.SelectedSourceStream = SourceStreams.FirstOrDefault();
@@ -266,7 +264,7 @@ namespace PeerCastStation.WPF.ChannelLists.Dialogs
         channel.ChannelTrack = channelTrack;
       }
 
-      var info = new BroadcastInfo {
+      var info = new BroadcastInfoViewModel {
         StreamUrl   = this.StreamUrl,
         StreamType  = this.SelectedSourceStream!=null ? this.SelectedSourceStream.Name : null,
         Bitrate     = this.bitrate.HasValue ? this.bitrate.Value : 0,
@@ -282,16 +280,15 @@ namespace PeerCastStation.WPF.ChannelLists.Dialogs
         TrackArtist = this.TrackArtist,
         TrackGenre  = this.TrackGenre,
         TrackUrl    = this.TrackUrl,
+        Favorite    = false,
       };
-      var settings = PeerCastApplication.Current.Settings.Get<WPFSettings>();
-      if (!settings.BroadcastHistory.Any(i => i.Equals(info))) {
-        settings.BroadcastHistory =
-          Enumerable.Repeat(info, 1)
-                    .Concat(settings.BroadcastHistory)
-                    .Take(20)
-                    .ToArray();
-        PeerCastApplication.Current.SaveSettings();
-      }
+      uiSettings.AddBroadcastHistory(info);
+      uiSettings.Save();
+    }
+
+    public void Save()
+    {
+      uiSettings.Save();
     }
 
     private bool CanBroadcast(Uri streamSource, IContentReaderFactory contentReaderFactory, string channelName)
