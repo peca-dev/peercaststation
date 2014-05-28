@@ -20,6 +20,7 @@ using System.Linq;
 using System.Text;
 using PeerCastStation.Core;
 using PeerCastStation.WPF.Commons;
+using System.Net;
 
 namespace PeerCastStation.WPF.ChannelLists.RelayTrees
 {
@@ -92,7 +93,8 @@ namespace PeerCastStation.WPF.ChannelLists.RelayTrees
     public string RemoteName {
       get {
         if (Node.Host.GlobalEndPoint!=null && Node.Host.GlobalEndPoint.Port!=0) {
-          return Node.Host.GlobalEndPoint.ToString();
+          var ipent = Dns.GetHostEntry(Node.Host.GlobalEndPoint.Address);
+          return ipent.HostName;
         }
         else {
           return Node.Host.LocalEndPoint.ToString();

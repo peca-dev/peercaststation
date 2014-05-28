@@ -660,9 +660,10 @@ namespace PeerCastStation.PCP
       }
       var remote = remoteType;
       if (RemoteEndPoint!=null && RemoteEndPoint.Address.IsSiteLocal()) remote |= RemoteHostStatus.Local;
+      var ipent = Dns.GetHostEntry(SourceUri.Host);
       var remote_name = String.Format(
         "{0}:{1}",
-        SourceUri.Host,
+        ipent.HostName,
         SourceUri.IsDefaultPort ? PCPVersion.DefaultPort : SourceUri.Port);
       return new ConnectionInfo(
         "PCP Source",
